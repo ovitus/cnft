@@ -225,7 +225,7 @@ Plutus:
 *   The ASCII text I've used are all close to 32 bytes, which is the maximum size for Cardano TokenNames/AssetNames.
     This allows the ASCII art to exist onchain, not just as a pointer to an IPFS file, although I provided an image for that too in the metadata.
     The hexidecimal representing the tokenname can be reversed back to text:
-    
+    ```
     echo 42696379636c650a2020205f5f6f0a205f205c3c5f0a285f292f285f29 | xxd -r -p
     Bicycle
        __o
@@ -237,3 +237,4 @@ Plutus:
     (\__/)
     (o^.^)
     z(_(")(")
+    ```
