@@ -24,6 +24,8 @@ for account in {0..23}; do
   echo
 done
 
+[[ -f CNFTValidator.plutus ]] || exit
+
 echo "CNFTValidator"
 $path/cardano-cli query utxo \
   --address $(cat CNFTValidator.addr) \

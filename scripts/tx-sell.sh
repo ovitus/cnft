@@ -1,5 +1,7 @@
 #!/bin/bash
 
+! [[ $# -eq 0 ]] && [[ $1 != "-dr" ]] && { echo tx-_.sh [-dr: Dry run]; exit; }
+
 cd $(dirname $0) && . tx.env
 
 acct0_utxo0=""
@@ -13,9 +15,9 @@ $path/cardano-cli transaction build \
   --tx-in $acct0_utxo0 \
   --tx-in $acct0_utxo1 \
   --tx-out "$cnftvalidator_addr + 1 $asset_id0 + 2000000" \
-  --tx-out-inline-datum-file bicycle-dat.json \
+  --tx-out-inline-datum-file datumAndrew.json \
   --tx-out "$cnftvalidator_addr + 1 $asset_id1 + 2000000" \
-  --tx-out-inline-datum-file pikachu-dat.json \
+  --tx-out-inline-datum-file datumAndrew.json \
   --tx-out "$refscript_addr + 15000000" \
   --tx-out-reference-script-file CNFTValidator.plutus \
   --change-address $acct0_addr \

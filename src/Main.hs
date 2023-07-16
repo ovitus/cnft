@@ -1,44 +1,45 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main where
 
-import CNFTValidator 
-         ( cnftValidator
-         , CNFTDatum (..)
-         )
-import CNFTMintingPolicy 
+import CNFTMintingPolicy
          ( cnftMintingPolicy 
          )
-import Plutus.Script.Utils.V2.Contexts 
-         ( TxOutRef (..)
+import CNFTValidator
+         ( cnftValidator
          )
 import Prelude
          ( ($)
+         , (<$>)
          , Bool (..)
          , IO
+         , Integer
+         , String
+         , mapM_
+         , putStrLn
+         , read
+         , readFile
          )
-import Serialise 
-         ( writeDataToFile
+import Serialise
+         ( toTxOutRef
+         , writeDataToFile
+         , writeDatumFileJSON
          , writeScriptToFile
          )
-import System.Directory (createDirectoryIfMissing)
+import System.Directory 
+         ( createDirectoryIfMissing
+         )
+import System.Environment 
+         ( getArgs
+         )
 
 main :: IO ()
 main = do
-  createDirectoryIfMissing True "assets"
-  writeScriptToFile "assets/CNFTValidator.plutus" cnftValidator
-  writeDataToFile "assets/unit.json" ()
-  writeScriptToFile "assets/CNFTMintingPolicy.plutus" $ cnftMintingPolicy $ TxOutRef
-    { txOutRefId  = "2743bf418f2bb194d07281a06017331d8e171cc1eb9222af6460c5a8aa2efe68"
-    , txOutRefIdx = 0
-    }
-  writeDataToFile "assets/bicycle-dat.json" $ CNFTDatum
-    { sellers   = [("8712aa3f948afc59295f654f41d9a2ae24e37df0e2a8a2b00321c2a4", 100000000)]
-    , buyer     = ""
-    , buyerBool = False
-    }
-  writeDataToFile "assets/pikachu-dat.json" $ CNFTDatum
-    { sellers   = [("8712aa3f948afc59295f654f41d9a2ae24e37df0e2a8a2b00321c2a4", 100000000)]
-    , buyer     = ""
-    , buyerBool = False
-    }
+  args <- getArgs
+  case args of
+    [utxo, datum] -> do
+      createDirectoryIfMissing True "assets"
+      datumParsed <- read <$> readFile datum :: IO [(String, [(String, Integer)], String, Bool)]
+      mapM_ writeDatumFileJSON datumParsed
+      writeDataToFile "assets/unit.json" ()
+      writeScriptToFile "assets/CNFTMintingPolicy.plutus" $ cnftMintingPolicy $ toTxOutRef utxo
+      writeScriptToFile "assets/CNFTValidator.plutus" cnftValidator
+    _ -> putStrLn "cnft <utxo> <datum.hs file>"

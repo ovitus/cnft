@@ -1,5 +1,7 @@
 #!/bin/bash
 
+! [[ $# -eq 0 ]] && [[ $1 != "-dr" ]] && { echo tx-_.sh [-dr: Dry run]; exit; }
+
 cd $(dirname $0) && . tx.env
 
 acct0_utxo=""

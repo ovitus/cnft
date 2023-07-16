@@ -17,12 +17,6 @@ An Unspent Transaction Output represents the unspent output of a previous transa
 Transaction hash and index determine a UTxO. 
 Once consumed, it is never seen again in the history of the blockchain. 
 
-Lars Brünjes, director of education at IOG, goes into further depth about it: 
-
-  https://www.youtube.com/watch?v=9kW-z_RuwEY
-
-A diagram showing how I used this idea to create my own minting policy along with a sales contract validator:
-
          ________________________.________________________
   
       |                                                     |
@@ -112,20 +106,11 @@ A diagram showing how I used this idea to create my own minting policy along wit
 Prerequisites:
 
 1.  Clone this repository, it's a cabal project and along with the Plutus Tx code there are a few useful bash scripts provided, mostly wrappers around cardano-cli and cardano-node.
-    Three directories in cnft to be aware of:
-```    
-      src:     Haskell code
-      scripts: Bash scripts
-      assets:  file output
-```
+    Three directories in cnft to be aware of are "src" (Haskell code), "scripts" (Bash scripts), and "assets" (file output).
+
 2.  If setting up a virtual machine, provision atleast 50 GB of disk space for everything here.
-    My specifications:  
-```
-      Debian 12
-      4 core CPU @ 4.7GHz
-      16GB RAM
-```
-    I suppose more memory might be needed if using mainnet or running a stake pool. I was using the preview testnet, minting NFTs and submitting sales contracts to the blockchain.
+    The VM specifications I used were Debian 12 on a 4 core CPU @ 4.7GHz with 16GB of RAM.
+    More memory might be needed if using mainnet or running a stake pool. 
 
 3.  Follow this guide to install the latest version of carano-node and cardano-cli:
 
@@ -176,10 +161,7 @@ Prerequisites:
 
 Plutus:
 
-1.  Execute the Plutus Tx program with "cabal run" in the main cnft directory.
-    This will compile the logic in CNFTMintingPolicy.hs and CNFTValidator.hs into Untyped Plutus Core and serialize it using CBOR encoding.
-    The UPLC code can be interpreted on-chain by the Cardano blockchain.
-    It will also create JSON files for the datums and redeemer.
+1.  In the main cnft directory, run "cabal install --installdir=." to install the package and create a smybolic link of the cnft binary.
 
 2.  Either generate generic account key sets or derive them from your Nami seed phrase. 
     Example script commands to create preview accounts 0, 1 and 2:
@@ -197,28 +179,37 @@ Plutus:
 
     There's a rate limit so you you'll need to split the amount between accounts or use a VPN.
 
-4.  Query UTxOs from the Nami/generic accounts, CNFTValidator and reference script addresses with query-utxos.sh.
+4.  Query UTxOs from the Nami/generic accounts with query-utxos.sh, note that each UTxO contains a TxHash, TxIx (index), and an amount.
+    A UTxO (more accurately a TxOutRef without an amount) can be referenced as "<TxHash>#<TxIx>".
 
-5.  Use tx-mint.sh as a template for setting up the minting transaction.
+5.  Use tx-mint.sh for setting up the minting transaction.
     Start by copying a UTxO from account 0 into the variable for tx-in.
     
-6.  The same UTxO used for the minting transaction input must be specified as a TxOutRef argument in Main.hs. 
-    The Plutus contract will check that this specifc UTxO was consumed in order to validate.
+6.  The same UTxO used for the minting transaction input must be specified as the first argument to the cnft Plutus Tx program. 
 
-7.  Also in Main.hs is the ability to create JSON files for the datum using the custom data type CNFTDatum.
-    In the sales contract validator, the datum specifies the public key hashes of sellers along with a value for each to be paid in Lovelace.
-    Other options are available to specify a buyer, refer to the diagram above.
+      * The Plutus contract will check that this specifc UTxO was consumed in order to validate.
 
-8.  After the changes are made, CNFTMintingPolicy must recompile, execute "cabal run" from the main cnft directory again.
+    The second argument will be a file containing paramaters to create a datum JSON file with the CNFTDatum data type.
 
-9.  Find the asset IDs with asset-ids.sh and copy whichever ones that'll be minted into tx-mint.sh.
+      * In the sales contract validator, the datum specifies the public key hashes of sellers along with a value for each to be paid in Lovelace.
+        Other options are available to specify a buyer, refer to the diagram above for an overview.
+
+    There's a datum.hs file in the src directory with examples to use as a template.
+    After this is edited and saved, run cnft:
+
+      cnft <utxo> <datum.hs file>
+
+      * This will compile the logic in CNFTMintingPolicy.hs and CNFTValidator.hs into Untyped Plutus Core and serialize it using CBOR encoding.
+        The UPLC code can be interpreted on-chain by the Cardano blockchain.
+
+7.  Find the asset IDs with asset-ids.sh and copy whichever ones that'll be minted into tx-mint.sh.
     ASCII art and metadata can be created with tx.env, it's also where many of the variables are sourced.
     Multiple NFTs to be minted with the same CurrencySymbol/PolicyID.
 
-10. Do a dry run of tx-mint.sh with the "-dr" option.
+8.  Do a dry run of tx-mint.sh with the "-dr" option.
     If all goes well, sign and submit the transaction.
 
-11. To put the NFTs for sale, use tx-sell.sh.
+9.  To put the NFTs for sale, use tx-sell.sh.
     It will create a reference script of the sales contract on a locked address.
     Note the datums being made inline, which were the ones created from Main.hs.
     Because these are placed onchain, the buyer doesn't need to provide either a script or datum file and reduces their purchase transaction fees.
@@ -226,7 +217,7 @@ Plutus:
     Also provide another UTxO from account 0 with additional ADA to pay for the fees of this transaction.
     Do a dry run and then sign and submit.
 
-12. To purchase the NFT, use tx-buy.
+10. To purchase the NFT, use tx-buy.
     The transaction will need to follow the logic defined by the sales contract validator and the datum it references.
     So if it requires payment to multiple public key hashes, the transaction output will need to reflect that.
     If a specific buyer is required, the buyer will need to provide their signing key, this type of transaction is exemplified in tx-commissioned-collab.sh.
@@ -234,7 +225,7 @@ Plutus:
 *   The ASCII text I've used are all close to 32 bytes, which is the maximum size for Cardano TokenNames/AssetNames.
     This allows the ASCII art to exist onchain, not just as a pointer to an IPFS file, although I provided an image for that too in the metadata.
     The hexidecimal representing the tokenname can be reversed back to text:
-```    
+    
     echo 42696379636c650a2020205f5f6f0a205f205c3c5f0a285f292f285f29 | xxd -r -p
     Bicycle
        __o
@@ -246,17 +237,3 @@ Plutus:
     (\__/)
     (o^.^)
     z(_(")(")
-```
-Here's a video of myself explaining and doing the Plutus transactions, it isn't perfect and somewhat outdated already, but does the job:
-https://vimeo.com/838663738
-
-
-That's it for my demonstration of minting and selling NFTs on the Cardano blockchain.
-I appreciate the inherrent immutable nature of this technology and hope for its longevity.
-Perhaps it can be the virtual equivalent to carving symbols into stone for posterity to discover and decipher.
-With nodes that persist through time and space, providing a resilient time capsule, an archive to our collective culture and ideas.
-Well preserved digital footprints for the archaeologists of the future.
-
-Now that I have a process for creating NFTs, I may update this repository with more tokenized art going forward.
-I might also eventually look into creating a decentralized application with a GUI frontend or auction validator. 
-Thanks to Emurgo for the helpful curriculum, I will consider taking future courses with them.
